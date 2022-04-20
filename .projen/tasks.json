@@ -121,6 +121,14 @@
         }
       ]
     },
+    "hotswap": {
+      "name": "hotswap",
+      "steps": [
+        {
+          "exec": "npx projen deploy --hotswap --require-approval never"
+        }
+      ]
+    },
     "package": {
       "name": "package",
       "description": "Creates the distribution package"
