@@ -9,6 +9,8 @@ import urllib.request
 from common import *
 from pathlib import Path
 import json
+from profanity_check import predict, predict_prob
+
 
 print('Loading function')
 
@@ -43,10 +45,12 @@ def get_offensive_score(text):
     return np.round(float(s), 4)
 
 
-def publish_offensive_message(key, details):
+def publish_message(key, problem, details):
+    source, moderateContent = get_source_file_and_moderate_content(key)
     message = {
-        'source': get_source_file(key),
-        'problem': 'Text moderation failed!',
+        'source': source,
+        'moderateContent': moderateContent,
+        'problem': 'Text moderation failed' + problem,
         'details': details
     }
     response = sns.publish(
@@ -64,22 +68,34 @@ def lambda_handler(event, context):
         event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     try:
         file_path = save_file(bucket, key)
-        details = {}
+        offensiveDetails = {}
+        profanityDetails = {}
         if key.endswith('.json'):
             content = Path(file_path).read_text()
             pageToText = json.loads(content)
             for page, text in pageToText.items():
-                score = get_offensive_score(text)
-                if score > threshold:
-                    details[page] = score
-            if len(details) > 0:
-                publish_offensive_message(key, details)
+                offensiveScore = get_offensive_score(text)
+                profanityScore = predict_prob([text])[0]
+                if offensiveScore > threshold:
+                    offensiveDetails[page] = offensiveScore
+                if profanityScore > threshold:
+                    profanityDetails[page] = profanityScore
+            if len(offensiveDetails) > 0:
+                publish_message(key, 'offensive', offensiveDetails)
+            if len(profanityDetails) > 0:
+                publish_message(key, 'profanity', profanityDetails)
         elif key.endswith('.txt'):
-            wordText = open(file_path, "r")
-            for line in text.wordText():
+            file = open(file_path, "r", encoding='utf-8')
+            lines = file.readlines()
+            # Strips the newline character
+            for line in lines:
                 if not line:
-                    score = get_offensive_score(line)
-                    publish_offensive_message(key, score)
+                    offensiveScore = get_offensive_score(line)
+                    profanityScore = predict_prob([line])[0]
+                    if offensiveScore > threshold:
+                        publish_message(key, 'offensive', offensiveScore)
+                    if profanityScore > threshold:
+                        publish_message(key, 'profanity', offensiveScore)
                     break
         return 'OK'
     except Exception as e:

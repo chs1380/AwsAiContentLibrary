@@ -11,7 +11,7 @@ def extract_text(word_file_path):
     text = docx2txt.process(word_file_path)
     filename, file_extension = os.path.splitext(word_file_path)
     output_file = os.path.join(os.path.dirname(
-        word_file_path), filename + ".txt")
+        word_file_path), filename + "/docx/extract_text.txt")
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(text)
 

@@ -21,7 +21,8 @@ def extract_text(file_path):
         slideNumber += 1
     print(texts)
     filename, file_extension = os.path.splitext(file_path)
-    output_file = os.path.join(os.path.dirname(file_path), filename + ".json")
+    output_file = os.path.join(os.path.dirname(
+        file_path), filename + "/pptx/extract_text.json")
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(texts, f)
 

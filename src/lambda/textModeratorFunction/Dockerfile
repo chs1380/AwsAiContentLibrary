@@ -8,12 +8,12 @@ ARG FUNCTION_DIR
 
 # Install aws-lambda-cpp build dependencies
 RUN apt-get update && \
-  apt-get install -y \
-  g++ \
-  make \
-  cmake \
-  unzip \
-  libcurl4-openssl-dev
+    apt-get install -y \
+    g++ \
+    make \
+    cmake \
+    unzip \
+    libcurl4-openssl-dev
 
 # Create function directory
 RUN mkdir -p ${FUNCTION_DIR}
@@ -21,7 +21,7 @@ RUN mkdir -p ${FUNCTION_DIR}
 # Install the function's dependencies
 RUN pip uninstall --yes jupyter
 RUN pip install --target ${FUNCTION_DIR} awslambdaric boto3
-RUN pip install --target ${FUNCTION_DIR} transformers scipy
+RUN pip install --target ${FUNCTION_DIR} transformers scipy alt-profanity-check
 
 # Get Model
 COPY get_model.py ${FUNCTION_DIR}

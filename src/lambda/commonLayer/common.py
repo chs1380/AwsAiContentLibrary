@@ -61,8 +61,10 @@ def copy_tmp_to_processing_bucket():
             )
 
 
-def get_source_file(filePathName):
+def get_source_file_and_moderate_content(filePathName):
     if '/pptx/' in filePathName:
-        return filePathName.split('/pptx/')[0] + ".pptx"
+        s = filePathName.split('/pptx/')
+        return (s[0] + ".pptx", s[1])
     elif '/docx/' in filePathName:
-        return filePathName.split('/docx/')[0] + ".docx"
+        s = filePathName.split('/docx/')
+        return (s[0] + ".docx", s[1])

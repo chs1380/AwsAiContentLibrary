@@ -29,8 +29,10 @@ def moderate_image(bucket, key):
     response = rekognition.detect_moderation_labels(
         Image={'S3Object': {'Bucket': bucket, 'Name': key}})
     if len(response['ModerationLabels']) > 0:
+        source, moderateContent = get_source_file_and_moderate_content(key)
         message = {
-            'source': get_source_file(key),
+            'source': source,
+            'moderateContent': moderateContent,
             'problem': 'Image moderation failed!',
             'details': response['ModerationLabels']
         }

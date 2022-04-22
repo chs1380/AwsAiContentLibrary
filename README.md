@@ -26,5 +26,3 @@ You need to run TypeScript compiler at the background with new terminal.
 ```
 pj watch
 ```
-
-/usr/local/lib/python3.7.10/dist-packages:/usr/local/lib/python3.5/dist-packages
