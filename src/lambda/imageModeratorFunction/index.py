@@ -10,26 +10,29 @@ sns = boto3.client('sns')
 
 
 def extract_text(bucket, key, file_path):
-    response = rekognition.detect_text(Image={'S3Object':{'Bucket':bucket,'Name':key}})
+    response = rekognition.detect_text(
+        Image={'S3Object': {'Bucket': bucket, 'Name': key}})
     texts = []
     for text in response['TextDetections']:
         texts.append(text['DetectedText'])
 
     filePathName, file_extension = os.path.splitext(key)
-    output_key=filePathName + ".txt"
+    output_key = filePathName + ".txt"
     print("\n".join(texts))
     print(output_key)
-    text = "\n".join(texts);
-    s3.put_object(Body=text, Bucket=os.environ['processingBucket'], Key=output_key)
+    text = "\n".join(texts)
+    s3.put_object(
+        Body=text, Bucket=os.environ['processingBucket'], Key=output_key)
 
 
 def moderate_image(bucket, key):
-    response = rekognition.detect_moderation_labels(Image={'S3Object':{'Bucket':bucket,'Name':key}})
+    response = rekognition.detect_moderation_labels(
+        Image={'S3Object': {'Bucket': bucket, 'Name': key}})
     if len(response['ModerationLabels']) > 0:
         message = {
             'source': get_source_file(key),
             'problem': 'Image moderation failed!',
-            'details' : response['ModerationLabels']
+            'details': response['ModerationLabels']
         }
         response = sns.publish(
             TargetArn=os.environ['moderationTopic'],
@@ -42,12 +45,13 @@ def lambda_handler(event, context):
     clean_tmp()
     # Get the object from the event and show its content type
     bucket = event['Records'][0]['s3']['bucket']['name']
-    key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+    key = urllib.parse.unquote_plus(
+        event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     try:
-        file_path = save_file(bucket,key)
-        extract_text(bucket,key,file_path)
-        moderate_image(bucket,key)
-        #copy_tmp_to_processing_bucket()
+        file_path = save_file(bucket, key)
+        extract_text(bucket, key, file_path)
+        moderate_image(bucket, key)
+        # copy_tmp_to_processing_bucket()
         return 'OK'
     except Exception as e:
         print(e)

@@ -12,21 +12,24 @@ import json
 
 print('Loading function')
 
-task='offensive'
+task = 'offensive'
 MODEL = f"cardiffnlp/twitter-roberta-base-{task}"
 tokenizer = AutoTokenizer.from_pretrained(MODEL)
 model = AutoModelForSequenceClassification.from_pretrained(MODEL)
 
-threshold=0.6
+threshold = 0.6
 
 sns = boto3.client('sns')
 
 # Preprocess text (username and link placeholders)
+
+
 def preprocess(text):
     new_text = []
     for t in text.split(" "):
         new_text.append(t)
     return " ".join(new_text)
+
 
 def get_offensive_score(text):
     text = preprocess(text)
@@ -39,24 +42,26 @@ def get_offensive_score(text):
     s = scores[ranking[1]]
     return np.round(float(s), 4)
 
-def publish_offensive_message(key, details);
-        message = {
-            'source': get_source_file(key),
-            'problem': 'Text moderation failed!',
-            'details' : details
-        }
-        response = sns.publish(
-            TargetArn=os.environ['moderationTopic'],
-            Message=json.dumps({'default': json.dumps(message)}),
-            MessageStructure='json'
-        )
+
+def publish_offensive_message(key, details):
+    message = {
+        'source': get_source_file(key),
+        'problem': 'Text moderation failed!',
+        'details': details
+    }
+    response = sns.publish(
+        TargetArn=os.environ['moderationTopic'],
+        Message=json.dumps({'default': json.dumps(message)}),
+        MessageStructure='json'
+    )
 
 
 def lambda_handler(event, context):
     clean_tmp()
     # Get the object from the event and show its content type
     bucket = event['Records'][0]['s3']['bucket']['name']
-    key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+    key = urllib.parse.unquote_plus(
+        event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     try:
         file_path = save_file(bucket, key)
         details = {}

@@ -9,6 +9,8 @@ import zipfile
 from pathlib import Path
 
 s3 = boto3.client('s3')
+
+
 def clean_tmp():
     folder = '/tmp/'
     for filename in os.listdir(folder):
@@ -21,7 +23,8 @@ def clean_tmp():
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-def save_file(bucket,key):
+
+def save_file(bucket, key):
     try:
         word_file_path = os.path.join("/tmp/", key)
         os.makedirs(os.path.dirname(word_file_path), exist_ok=True)
@@ -33,13 +36,14 @@ def save_file(bucket,key):
         else:
             raise
 
+
 def extract_media(file_path, prefix):
     archive = zipfile.ZipFile(file_path)
     for file in archive.filelist:
         if file.filename.startswith(prefix):
             filename, file_extension = os.path.splitext(file_path)
             file_extension = file_extension[1:]
-            extract_media_file_dir=os.path.join(filename,file_extension)
+            extract_media_file_dir = os.path.join(filename, file_extension)
             os.makedirs(os.path.dirname(extract_media_file_dir), exist_ok=True)
             archive.extract(file, path=extract_media_file_dir)
 
@@ -55,6 +59,7 @@ def copy_tmp_to_processing_bucket():
                 Bucket=processingBucket,
                 Key=str(path)[len("/tmp/"):],
             )
+
 
 def get_source_file(filePathName):
     if '/pptx/' in filePathName:

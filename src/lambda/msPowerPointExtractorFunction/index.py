@@ -21,7 +21,7 @@ def extract_text(file_path):
         slideNumber += 1
     print(texts)
     filename, file_extension = os.path.splitext(file_path)
-    output_file=os.path.join(os.path.dirname(file_path), filename + ".json")
+    output_file = os.path.join(os.path.dirname(file_path), filename + ".json")
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(texts, f)
 
@@ -30,10 +30,11 @@ def lambda_handler(event, context):
     clean_tmp()
     # Get the object from the event and show its content type
     bucket = event['Records'][0]['s3']['bucket']['name']
-    key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+    key = urllib.parse.unquote_plus(
+        event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     try:
-        file_path = save_file(bucket,key)
-        extract_media(file_path,'ppt/media/')
+        file_path = save_file(bucket, key)
+        extract_media(file_path, 'ppt/media/')
         extract_text(file_path)
         copy_tmp_to_processing_bucket()
         return 'OK'
