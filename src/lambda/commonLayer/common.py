@@ -57,7 +57,6 @@ def copy_tmp_to_processing_bucket():
             )
 
 def get_source_file(filePathName):
-    #cywong@vtc.edu.hk/testing/pptx/ppt/media/image1.txt
     if '/pptx/' in filePathName:
         return filePathName.split('/pptx/')[0] + ".pptx"
     elif '/docx/' in filePathName:
