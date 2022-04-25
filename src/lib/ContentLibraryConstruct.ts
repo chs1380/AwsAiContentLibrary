@@ -46,9 +46,29 @@ export class ContentLibraryConstruct extends Construct {
     super(scope, id);
     this.contentLibraryBucket = new Bucket(this, "contentLibraryBucket", {
       removalPolicy: RemovalPolicy.DESTROY,
+      lifecycleRules: [
+        {
+          abortIncompleteMultipartUploadAfter: Duration.days(5),
+        },
+      ],
     });
     this.processingBucket = new Bucket(this, "processingBucket", {
       removalPolicy: RemovalPolicy.DESTROY,
+      lifecycleRules: [
+        {
+          abortIncompleteMultipartUploadAfter: Duration.days(5),
+          expiration: Duration.days(7),
+        },
+      ],
+    });
+
+    const moderationFailedBucket = new Bucket(this, "moderationFailedBucket", {
+      removalPolicy: RemovalPolicy.DESTROY,
+      lifecycleRules: [
+        {
+          abortIncompleteMultipartUploadAfter: Duration.days(5),
+        },
+      ],
     });
     this.moderationTopic = new Topic(this, "moderationTopic");
 
@@ -96,9 +116,40 @@ export class ContentLibraryConstruct extends Construct {
         ],
       })
     );
-    // const textModeratorFunction = this.moderatorFunction('textModeratorFunction', ['txt', 'json']);
     this.buildTextModeratorFunction();
     this.buildVideoModerationFunctions();
+
+    const moderationFailedFunction = new PythonFunction(
+      this,
+      "moderationFailedFunction",
+      {
+        entry: path.join(
+          __dirname,
+          "..",
+          "..",
+          "assets",
+          "lambda",
+          "moderationFailedFunction"
+        ), // required
+        description: this.prefix + "moderationFailedFunction",
+        runtime: Runtime.PYTHON_3_9, // required
+        index: "index.py", // optional, defaults to 'index.py'
+        handler: "lambda_handler", // optional, defaults to 'handler'
+        layers: [this.commonLayer],
+        environment: {
+          contentLibraryBucket: this.contentLibraryBucket.bucketName,
+          moderationFailedBucket: moderationFailedBucket.bucketName,
+        },
+        timeout: Duration.minutes(5),
+        memorySize: 512,
+        tracing: Tracing.ACTIVE,
+      }
+    );
+    this.moderationTopic.addSubscription(
+      new LambdaSubscription(moderationFailedFunction)
+    );
+    moderationFailedBucket.grantWrite(moderationFailedFunction);
+    this.contentLibraryBucket.grantReadWrite(moderationFailedFunction);
   }
 
   private buildVideoModerationFunctions() {
@@ -108,57 +159,57 @@ export class ContentLibraryConstruct extends Construct {
     this.videoContentModerationTopic.grantPublish(rekognitionServiceRole);
 
     const videoModeratorFunction = this.moderatorFunction(
-        "videoModeratorFunction",
-        ["mp4"]
+      "videoModeratorFunction",
+      ["mp4"]
     );
     videoModeratorFunction.role?.attachInlinePolicy(
-        new Policy(this, "videoModeratorFunctionPolicy", {
-          statements: [
-            new PolicyStatement({
-              actions: ["rekognition:StartContentModeration"],
-              resources: ["*"],
-            }),
-            new PolicyStatement({
-              actions: ["iam:PassRole"],
-              resources: [rekognitionServiceRole.roleArn],
-            }),
-            new PolicyStatement({
-              actions: ["transcribe:StartTranscriptionJob"],
-              resources: ["*"],
-              conditions: {
-                StringEquals: {
-                  "transcribe:OutputBucketName": this.processingBucket.bucketName,
-                },
+      new Policy(this, "videoModeratorFunctionPolicy", {
+        statements: [
+          new PolicyStatement({
+            actions: ["rekognition:StartContentModeration"],
+            resources: ["*"],
+          }),
+          new PolicyStatement({
+            actions: ["iam:PassRole"],
+            resources: [rekognitionServiceRole.roleArn],
+          }),
+          new PolicyStatement({
+            actions: ["transcribe:StartTranscriptionJob"],
+            resources: ["*"],
+            conditions: {
+              StringEquals: {
+                "transcribe:OutputBucketName": this.processingBucket.bucketName,
               },
-            }),
-          ],
-        })
+            },
+          }),
+        ],
+      })
     );
     videoModeratorFunction.addEnvironment(
-        "videoContentModerationTopic",
-        this.videoContentModerationTopic.topicArn
+      "videoContentModerationTopic",
+      this.videoContentModerationTopic.topicArn
     );
     videoModeratorFunction.addEnvironment(
-        "rekognitionServiceRole",
-        rekognitionServiceRole.roleArn
+      "rekognitionServiceRole",
+      rekognitionServiceRole.roleArn
     );
 
     const videoModeratorCallbackFunction = this.moderatorFunction(
-        "videoModeratorCallbackFunction",
-        []
+      "videoModeratorCallbackFunction",
+      []
     );
     videoModeratorCallbackFunction.role?.attachInlinePolicy(
-        new Policy(this, "videoModeratorCallbackFunctionPolicy", {
-          statements: [
-            new PolicyStatement({
-              actions: ["rekognition:GetContentModeration"],
-              resources: ["*"],
-            }),
-          ],
-        })
+      new Policy(this, "videoModeratorCallbackFunctionPolicy", {
+        statements: [
+          new PolicyStatement({
+            actions: ["rekognition:GetContentModeration"],
+            resources: ["*"],
+          }),
+        ],
+      })
     );
     this.videoContentModerationTopic.addSubscription(
-        new LambdaSubscription(videoModeratorCallbackFunction)
+      new LambdaSubscription(videoModeratorCallbackFunction)
     );
   }
 
