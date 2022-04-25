@@ -13,9 +13,13 @@ export class AwsAiContentLibraryStack extends Stack {
             });
 
         // 👇 create an Output
-        new cdk.CfnOutput(this, 'bucketName', {
+        new cdk.CfnOutput(this, 'contentLibraryBucket', {
             value: contentLibraryConstruct.contentLibraryBucket.bucketName,
             description: 'Content Library Bucket',
+        });
+        new cdk.CfnOutput(this, 'moderationFailedBucket', {
+            value: contentLibraryConstruct.moderationFailedBucket.bucketName,
+            description: 'Moderation Failed Bucket',
         });
 
     }

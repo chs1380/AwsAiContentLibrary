@@ -32,11 +32,13 @@ export interface ContentLibraryConstructProps {
 
 export class ContentLibraryConstruct extends Construct {
   public readonly contentLibraryBucket: Bucket;
+  public readonly moderationFailedBucket: Bucket;
   private readonly processingBucket: Bucket;
   private readonly commonLayer: PythonLayerVersion;
   private readonly prefix: string;
   private readonly moderationTopic: Topic;
   private readonly videoContentModerationTopic: Topic;
+
 
   constructor(
     scope: Construct,
@@ -62,7 +64,7 @@ export class ContentLibraryConstruct extends Construct {
       ],
     });
 
-    const moderationFailedBucket = new Bucket(this, "moderationFailedBucket", {
+    this.moderationFailedBucket = new Bucket(this, "moderationFailedBucket", {
       removalPolicy: RemovalPolicy.DESTROY,
       lifecycleRules: [
         {
@@ -118,37 +120,40 @@ export class ContentLibraryConstruct extends Construct {
     );
     this.buildTextModeratorFunction();
     this.buildVideoModerationFunctions();
+    this.buildModerationFailedFunction();
+  }
 
+  private buildModerationFailedFunction() {
     const moderationFailedFunction = new PythonFunction(
-      this,
-      "moderationFailedFunction",
-      {
-        entry: path.join(
-          __dirname,
-          "..",
-          "..",
-          "assets",
-          "lambda",
-          "moderationFailedFunction"
-        ), // required
-        description: this.prefix + "moderationFailedFunction",
-        runtime: Runtime.PYTHON_3_9, // required
-        index: "index.py", // optional, defaults to 'index.py'
-        handler: "lambda_handler", // optional, defaults to 'handler'
-        layers: [this.commonLayer],
-        environment: {
-          contentLibraryBucket: this.contentLibraryBucket.bucketName,
-          moderationFailedBucket: moderationFailedBucket.bucketName,
-        },
-        timeout: Duration.minutes(5),
-        memorySize: 512,
-        tracing: Tracing.ACTIVE,
-      }
+        this,
+        "moderationFailedFunction",
+        {
+          entry: path.join(
+              __dirname,
+              "..",
+              "..",
+              "assets",
+              "lambda",
+              "moderationFailedFunction"
+          ), // required
+          description: this.prefix + "moderationFailedFunction",
+          runtime: Runtime.PYTHON_3_9, // required
+          index: "index.py", // optional, defaults to 'index.py'
+          handler: "lambda_handler", // optional, defaults to 'handler'
+          layers: [this.commonLayer],
+          environment: {
+            contentLibraryBucket: this.contentLibraryBucket.bucketName,
+            moderationFailedBucket: this.moderationFailedBucket.bucketName,
+          },
+          timeout: Duration.minutes(5),
+          memorySize: 512,
+          tracing: Tracing.ACTIVE,
+        }
     );
     this.moderationTopic.addSubscription(
-      new LambdaSubscription(moderationFailedFunction)
+        new LambdaSubscription(moderationFailedFunction)
     );
-    moderationFailedBucket.grantWrite(moderationFailedFunction);
+    this.moderationFailedBucket.grantWrite(moderationFailedFunction);
     this.contentLibraryBucket.grantReadWrite(moderationFailedFunction);
   }
 
