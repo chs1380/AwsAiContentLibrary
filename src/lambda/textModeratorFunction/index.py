@@ -23,8 +23,6 @@ threshold = 0.6
 
 sns = boto3.client('sns')
 
-# Preprocess text (username and link placeholders)
-
 
 def preprocess(text):
     new_text = []
@@ -50,7 +48,7 @@ def publish_message(key, problem, details):
     message = {
         'source': source,
         'moderateContent': moderateContent,
-        'problem': 'Text moderation failed' + problem,
+        'problem': problem + " text",
         'details': details
     }
     response = sns.publish(
@@ -71,6 +69,7 @@ def lambda_handler(event, context):
         offensiveDetails = {}
         profanityDetails = {}
         if key.endswith('.json'):
+            print("PPT:" + key)
             content = Path(file_path).read_text()
             pageToText = json.loads(content)
             for page, text in pageToText.items():
@@ -85,18 +84,20 @@ def lambda_handler(event, context):
             if len(profanityDetails) > 0:
                 publish_message(key, 'profanity', profanityDetails)
         elif key.endswith('.txt'):
+            print("Text:" + key)
             file = open(file_path, "r", encoding='utf-8')
             lines = file.readlines()
-            # Strips the newline character
             for line in lines:
-                if not line:
+                if line:
                     offensiveScore = get_offensive_score(line)
                     profanityScore = predict_prob([line])[0]
+                    print(line)
                     if offensiveScore > threshold:
                         publish_message(key, 'offensive', offensiveScore)
+                        break
                     if profanityScore > threshold:
                         publish_message(key, 'profanity', offensiveScore)
-                    break
+                        break
         return 'OK'
     except Exception as e:
         print(e)

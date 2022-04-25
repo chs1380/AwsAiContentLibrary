@@ -12,10 +12,14 @@ sns = boto3.client('sns')
 def extract_text(bucket, key, file_path):
     response = rekognition.detect_text(
         Image={'S3Object': {'Bucket': bucket, 'Name': key}})
-    texts = []
+    lines = []
+    words = []
     for text in response['TextDetections']:
-        texts.append(text['DetectedText'])
-
+        if text['Type'] == 'LINE':
+            lines.append(text['DetectedText'])
+        elif text['Type'] == 'WORD':
+            words.append(text['DetectedText'])
+    texts = lines + words
     filePathName, file_extension = os.path.splitext(key)
     output_key = filePathName + ".txt"
     print("\n".join(texts))
@@ -33,7 +37,7 @@ def moderate_image(bucket, key):
         message = {
             'source': source,
             'moderateContent': moderateContent,
-            'problem': 'Image moderation failed!',
+            'problem': 'Image',
             'details': response['ModerationLabels']
         }
         response = sns.publish(
