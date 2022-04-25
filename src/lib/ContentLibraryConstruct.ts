@@ -98,64 +98,67 @@ export class ContentLibraryConstruct extends Construct {
     );
     // const textModeratorFunction = this.moderatorFunction('textModeratorFunction', ['txt', 'json']);
     this.buildTextModeratorFunction();
+    this.buildVideoModerationFunctions();
+  }
 
+  private buildVideoModerationFunctions() {
     const rekognitionServiceRole = new Role(this, "rekognitionServiceRole", {
       assumedBy: new ServicePrincipal("rekognition.amazonaws.com"),
     });
     this.videoContentModerationTopic.grantPublish(rekognitionServiceRole);
 
     const videoModeratorFunction = this.moderatorFunction(
-      "videoModeratorFunction",
-      ["mp4"]
+        "videoModeratorFunction",
+        ["mp4"]
     );
     videoModeratorFunction.role?.attachInlinePolicy(
-      new Policy(this, "videoModeratorFunctionPolicy", {
-        statements: [
-          new PolicyStatement({
-            actions: ["rekognition:StartContentModeration"],
-            resources: ["*"],
-          }),
-          new PolicyStatement({
-            actions: ["iam:PassRole"],
-            resources: [rekognitionServiceRole.roleArn],
-          }),
-          new PolicyStatement({
-            actions: ["transcribe:StartTranscriptionJob"],
-            resources: ["*"],
-            conditions: {
-              StringEquals: {
-                "transcribe:OutputBucketName": this.processingBucket.bucketName,
+        new Policy(this, "videoModeratorFunctionPolicy", {
+          statements: [
+            new PolicyStatement({
+              actions: ["rekognition:StartContentModeration"],
+              resources: ["*"],
+            }),
+            new PolicyStatement({
+              actions: ["iam:PassRole"],
+              resources: [rekognitionServiceRole.roleArn],
+            }),
+            new PolicyStatement({
+              actions: ["transcribe:StartTranscriptionJob"],
+              resources: ["*"],
+              conditions: {
+                StringEquals: {
+                  "transcribe:OutputBucketName": this.processingBucket.bucketName,
+                },
               },
-            },
-          }),
-        ],
-      })
+            }),
+          ],
+        })
     );
     videoModeratorFunction.addEnvironment(
-      "videoContentModerationTopic",
-      this.videoContentModerationTopic.topicArn
+        "videoContentModerationTopic",
+        this.videoContentModerationTopic.topicArn
     );
     videoModeratorFunction.addEnvironment(
-      "rekognitionServiceRole",
-      rekognitionServiceRole.roleArn
+        "rekognitionServiceRole",
+        rekognitionServiceRole.roleArn
     );
 
     const videoModeratorCallbackFunction = this.moderatorFunction(
-      "videoModeratorCallbackFunction",
-      []
+        "videoModeratorCallbackFunction",
+        []
     );
     videoModeratorCallbackFunction.role?.attachInlinePolicy(
-      new Policy(this, "videoModeratorCallbackFunctionPolicy", {
-        statements: [
-          new PolicyStatement({
-            actions: ["rekognition:GetContentModeration"],
-            resources: ["*"],
-          }),
-        ],
-      })
+        new Policy(this, "videoModeratorCallbackFunctionPolicy", {
+          statements: [
+            new PolicyStatement({
+              actions: ["rekognition:GetContentModeration"],
+              resources: ["*"],
+            }),
+          ],
+        })
     );
     this.videoContentModerationTopic.addSubscription(
-      new LambdaSubscription(videoModeratorCallbackFunction)
+        new LambdaSubscription(videoModeratorCallbackFunction)
     );
   }
 
