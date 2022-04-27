@@ -11,7 +11,7 @@ import {
   PythonLayerVersion,
 } from "@aws-cdk/aws-lambda-python-alpha";
 import * as path from "path";
-import { Duration, RemovalPolicy, Stack } from "aws-cdk-lib";
+import { Duration, RemovalPolicy } from "aws-cdk-lib";
 import { S3EventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import {
   Policy,
@@ -40,8 +40,6 @@ export class ContentLibraryConstruct extends Construct {
   private readonly moderationTopic: Topic;
   private readonly videoContentModerationTopic: Topic;
 
-  private readonly huggingFaceodelEndpointName: string;
-
   constructor(
     scope: Construct,
     id: string,
@@ -65,18 +63,6 @@ export class ContentLibraryConstruct extends Construct {
         },
       ],
     });
-
-    const huggingFaceSagemakerServerlessInferenceConstruct =
-      new HuggingFaceSagemakerServerlessInferenceConstruct(
-        this,
-        "huggingFaceSagemakerServerlessInferenceConstruct",
-        {
-          hfModelId: "cardiffnlp/twitter-roberta-base-offensive",
-          hfTask: "text-classification",
-        }
-      );
-    this.huggingFaceodelEndpointName =
-      huggingFaceSagemakerServerlessInferenceConstruct.endpointName;
 
     this.moderationFailedBucket = new Bucket(this, "moderationFailedBucket", {
       removalPolicy: RemovalPolicy.DESTROY,
@@ -271,26 +257,28 @@ export class ContentLibraryConstruct extends Construct {
     );
     this.moderationTopic.grantPublish(textModeratorFunction);
 
+    const huggingFaceSagemakerServerlessInferenceConstruct =
+      new HuggingFaceSagemakerServerlessInferenceConstruct(
+        this,
+        "huggingFaceSagemakerServerlessInferenceConstruct",
+        {
+          hfModelId: "cardiffnlp/twitter-roberta-base-offensive",
+          hfTask: "text-classification",
+        }
+      );
     const offensiveTextModeratorFunction = this.moderatorFunction(
       "offensiveTextModeratorFunction",
       []
     );
     offensiveTextModeratorFunction.addEnvironment(
       "huggingFaceodelEndpointName",
-      this.huggingFaceodelEndpointName
+      huggingFaceSagemakerServerlessInferenceConstruct.endpointName
     );
     this.moderationTopic.grantPublish(offensiveTextModeratorFunction);
     offensiveTextModeratorFunction.role?.attachInlinePolicy(
       new Policy(this, "offensiveTextModeratorFunctionPolicy", {
         statements: [
-          new PolicyStatement({
-            actions: ["sagemaker:InvokeEndpoint"],
-            resources: [
-              `arn:aws:sagemaker:${Stack.of(this).region}:${
-                Stack.of(this).account
-              }:endpoint/${this.huggingFaceodelEndpointName}`,
-            ],
-          }),
+          huggingFaceSagemakerServerlessInferenceConstruct.invokeEndPointPolicyStatement,
         ],
       })
     );

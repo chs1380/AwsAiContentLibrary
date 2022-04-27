@@ -1,9 +1,14 @@
 import { Construct } from "constructs";
 import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
 import * as path from "path";
-import { Duration, CustomResource, RemovalPolicy } from "aws-cdk-lib";
+import { Duration, CustomResource, RemovalPolicy, Stack } from "aws-cdk-lib";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
-import { Role, ServicePrincipal, ManagedPolicy } from "aws-cdk-lib/aws-iam";
+import {
+  Role,
+  ServicePrincipal,
+  ManagedPolicy,
+  PolicyStatement,
+} from "aws-cdk-lib/aws-iam";
 
 export interface HuggingFaceSagemakerServerlessInferenceConstructProps {
   hfModelId: string;
@@ -14,6 +19,7 @@ export interface HuggingFaceSagemakerServerlessInferenceConstructProps {
 
 export class HuggingFaceSagemakerServerlessInferenceConstruct extends Construct {
   public readonly endpointName: string;
+  public readonly invokeEndPointPolicyStatement: PolicyStatement;
   constructor(
     scope: Construct,
     id: string,
@@ -72,5 +78,14 @@ export class HuggingFaceSagemakerServerlessInferenceConstruct extends Construct 
       huggingFaceModelSagemakerServerlessInferneceCustomResource.getAttString(
         "endpoint_name"
       );
+
+    this.invokeEndPointPolicyStatement = new PolicyStatement({
+      actions: ["sagemaker:InvokeEndpoint"],
+      resources: [
+        `arn:aws:sagemaker:${Stack.of(this).region}:${
+          Stack.of(this).account
+        }:endpoint/${this.endpointName}`,
+      ],
+    });
   }
 }
