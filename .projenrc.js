@@ -12,5 +12,5 @@ const project = new awscdk.AwsCdkTypeScriptApp({
 
 project.addTask('hotswap',{
   exec:'npx projen deploy --hotswap --require-approval never'
-})
+});
 project.synth();

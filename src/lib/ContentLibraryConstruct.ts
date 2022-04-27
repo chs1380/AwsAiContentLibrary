@@ -11,7 +11,7 @@ import {
   PythonLayerVersion,
 } from "@aws-cdk/aws-lambda-python-alpha";
 import * as path from "path";
-import { Duration, RemovalPolicy } from "aws-cdk-lib";
+import { Duration, RemovalPolicy, Stack } from "aws-cdk-lib";
 import { S3EventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import {
   Policy,
@@ -24,6 +24,7 @@ import {
   EmailSubscription,
   LambdaSubscription,
 } from "aws-cdk-lib/aws-sns-subscriptions";
+import { HuggingFaceSagemakerServerlessInferenceConstruct } from "./HuggingFaceSagemakerServerlessInferenceConstruct";
 
 export interface ContentLibraryConstructProps {
   prefix: string;
@@ -39,6 +40,7 @@ export class ContentLibraryConstruct extends Construct {
   private readonly moderationTopic: Topic;
   private readonly videoContentModerationTopic: Topic;
 
+  private readonly huggingFaceodelEndpointName: string;
 
   constructor(
     scope: Construct,
@@ -63,6 +65,18 @@ export class ContentLibraryConstruct extends Construct {
         },
       ],
     });
+
+    const huggingFaceSagemakerServerlessInferenceConstruct =
+      new HuggingFaceSagemakerServerlessInferenceConstruct(
+        this,
+        "huggingFaceSagemakerServerlessInferenceConstruct",
+        {
+          hfModelId: "cardiffnlp/twitter-roberta-base-offensive",
+          hfTask: "text-classification",
+        }
+      );
+    this.huggingFaceodelEndpointName =
+      huggingFaceSagemakerServerlessInferenceConstruct.endpointName;
 
     this.moderationFailedBucket = new Bucket(this, "moderationFailedBucket", {
       removalPolicy: RemovalPolicy.DESTROY,
@@ -125,33 +139,33 @@ export class ContentLibraryConstruct extends Construct {
 
   private buildModerationFailedFunction() {
     const moderationFailedFunction = new PythonFunction(
-        this,
-        "moderationFailedFunction",
-        {
-          entry: path.join(
-              __dirname,
-              "..",
-              "..",
-              "assets",
-              "lambda",
-              "moderationFailedFunction"
-          ), // required
-          description: this.prefix + "moderationFailedFunction",
-          runtime: Runtime.PYTHON_3_9, // required
-          index: "index.py", // optional, defaults to 'index.py'
-          handler: "lambda_handler", // optional, defaults to 'handler'
-          layers: [this.commonLayer],
-          environment: {
-            contentLibraryBucket: this.contentLibraryBucket.bucketName,
-            moderationFailedBucket: this.moderationFailedBucket.bucketName,
-          },
-          timeout: Duration.minutes(5),
-          memorySize: 512,
-          tracing: Tracing.ACTIVE,
-        }
+      this,
+      "moderationFailedFunction",
+      {
+        entry: path.join(
+          __dirname,
+          "..",
+          "..",
+          "assets",
+          "lambda",
+          "moderationFailedFunction"
+        ), // required
+        description: this.prefix + "moderationFailedFunction",
+        runtime: Runtime.PYTHON_3_9, // required
+        index: "index.py", // optional, defaults to 'index.py'
+        handler: "lambda_handler", // optional, defaults to 'handler'
+        layers: [this.commonLayer],
+        environment: {
+          contentLibraryBucket: this.contentLibraryBucket.bucketName,
+          moderationFailedBucket: this.moderationFailedBucket.bucketName,
+        },
+        timeout: Duration.minutes(5),
+        memorySize: 512,
+        tracing: Tracing.ACTIVE,
+      }
     );
     this.moderationTopic.addSubscription(
-        new LambdaSubscription(moderationFailedFunction)
+      new LambdaSubscription(moderationFailedFunction)
     );
     this.moderationFailedBucket.grantWrite(moderationFailedFunction);
     this.contentLibraryBucket.grantReadWrite(moderationFailedFunction);
@@ -256,6 +270,30 @@ export class ContentLibraryConstruct extends Construct {
       )
     );
     this.moderationTopic.grantPublish(textModeratorFunction);
+
+    const offensiveTextModeratorFunction = this.moderatorFunction(
+      "offensiveTextModeratorFunction",
+      []
+    );
+    offensiveTextModeratorFunction.addEnvironment(
+      "huggingFaceodelEndpointName",
+      this.huggingFaceodelEndpointName
+    );
+    this.moderationTopic.grantPublish(offensiveTextModeratorFunction);
+    offensiveTextModeratorFunction.role?.attachInlinePolicy(
+      new Policy(this, "offensiveTextModeratorFunctionPolicy", {
+        statements: [
+          new PolicyStatement({
+            actions: ["sagemaker:InvokeEndpoint"],
+            resources: [
+              `arn:aws:sagemaker:${Stack.of(this).region}:${
+                Stack.of(this).account
+              }:endpoint/${this.huggingFaceodelEndpointName}`,
+            ],
+          }),
+        ],
+      })
+    );
   }
 
   private extractorFunction(functionName: string, extensions: string[]) {
