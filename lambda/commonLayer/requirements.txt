@@ -1,0 +1,4 @@
+python-pptx
+python-docx
+docx2txt
+sagemaker
