@@ -53,8 +53,8 @@ export class HuggingFaceSagemakerServerlessInferenceConstruct extends Construct 
         environment: {
           hfModelId: props.hfModelId,
           hfTask: props.hfTask,
-          memorySizeInMb: "" + props.memorySizeInMb ?? "4096",
-          maxConcurrency: "" + props.maxConcurrency ?? "5",
+          memorySizeInMb: "" + (props.memorySizeInMb || "4096"),
+          maxConcurrency: "" + (props.maxConcurrency || "5"),
           sageMakerRoleArn: sageMakerRole.roleArn,
         },
         timeout: Duration.minutes(15),

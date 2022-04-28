@@ -219,6 +219,15 @@ export class ContentLibraryConstruct extends Construct {
   }
 
   private buildTextModeratorFunction() {
+    const huggingFaceSagemakerServerlessInferenceConstruct =
+      new HuggingFaceSagemakerServerlessInferenceConstruct(
+        this,
+        "huggingFaceSagemakerServerlessInferenceConstruct",
+        {
+          hfModelId: "cardiffnlp/twitter-roberta-base-offensive",
+          hfTask: "text-classification",
+        }
+      );
     const textModeratorFunction = new DockerImageFunction(
       this,
       "textModeratorFunction",
@@ -236,11 +245,13 @@ export class ContentLibraryConstruct extends Construct {
             cmd: ["index.lambda_handler"],
           }
         ),
-        memorySize: 8096,
+        memorySize: 2048,
         timeout: Duration.minutes(10),
         environment: {
           processingBucket: this.processingBucket.bucketName,
           moderationTopic: this.moderationTopic.topicArn,
+          huggingFaceodelEndpointName:
+            huggingFaceSagemakerServerlessInferenceConstruct.endpointName,
         },
         tracing: Tracing.ACTIVE,
       }
@@ -256,26 +267,7 @@ export class ContentLibraryConstruct extends Construct {
       )
     );
     this.moderationTopic.grantPublish(textModeratorFunction);
-
-    const huggingFaceSagemakerServerlessInferenceConstruct =
-      new HuggingFaceSagemakerServerlessInferenceConstruct(
-        this,
-        "huggingFaceSagemakerServerlessInferenceConstruct",
-        {
-          hfModelId: "cardiffnlp/twitter-roberta-base-offensive",
-          hfTask: "text-classification",
-        }
-      );
-    const offensiveTextModeratorFunction = this.moderatorFunction(
-      "offensiveTextModeratorFunction",
-      []
-    );
-    offensiveTextModeratorFunction.addEnvironment(
-      "huggingFaceodelEndpointName",
-      huggingFaceSagemakerServerlessInferenceConstruct.endpointName
-    );
-    this.moderationTopic.grantPublish(offensiveTextModeratorFunction);
-    offensiveTextModeratorFunction.role?.attachInlinePolicy(
+    textModeratorFunction.role?.attachInlinePolicy(
       new Policy(this, "offensiveTextModeratorFunctionPolicy", {
         statements: [
           huggingFaceSagemakerServerlessInferenceConstruct.invokeEndPointPolicyStatement,
