@@ -33,7 +33,7 @@ def preprocess(text):
 def get_offensive_score(text):
 
     predictor = HuggingFacePredictor(
-        endpoint_name=os.environ['huggingFaceodelEndpointName'], sagemaker_session=sess)
+        endpoint_name=os.environ['huggingFaceModelEndpointName'], sagemaker_session=sess)
     data = {
         "inputs": text,
         "parameters": {
@@ -58,8 +58,8 @@ def publish_message(key, problem, details):
     message = {
         'source': source,
         'moderateContent': moderateContent,
-        'problem': problem + " text",
-        'details': details
+        'problem': problem + "Text",
+        'details': json.dumps(details)
     }
     sns.publish(
         TargetArn=os.environ['moderationTopic'],
@@ -77,10 +77,12 @@ def handle_text(key, file_path):
             profanityScore = predict_prob([line])[0]
             print(line)
             if offensiveScore > threshold:
-                publish_message(key, 'offensive', offensiveScore)
+                details = {'score': offensiveScore, 'text': line}
+                publish_message(key, 'Offensive', details)
                 break
             if profanityScore > threshold:
-                publish_message(key, 'profanity', offensiveScore)
+                details = {'score': profanityScore, 'text': line}
+                publish_message(key, 'Profanity', details)
                 break
 
 
@@ -95,9 +97,9 @@ def handle_json(key, file_path):
         offensiveScore = get_offensive_score(transcript)
         profanityScore = predict_prob([transcript])[0]
         if offensiveScore > threshold:
-            publish_message(key, 'offensive', offensiveScore)
+            publish_message(key, 'Offensive', offensiveScore)
         if profanityScore > threshold:
-            publish_message(key, 'profanity', offensiveScore)
+            publish_message(key, 'Profanity', profanityScore)
     else:
         pageToText = content
         for page, text in pageToText.items():
@@ -108,9 +110,9 @@ def handle_json(key, file_path):
             if profanityScore > threshold:
                 profanityDetails[page] = profanityScore
         if len(offensiveDetails) > 0:
-            publish_message(key, 'offensive', offensiveDetails)
+            publish_message(key, 'Offensive', offensiveDetails)
         if len(profanityDetails) > 0:
-            publish_message(key, 'profanity', profanityDetails)
+            publish_message(key, 'Profanity', profanityDetails)
 
 
 def lambda_handler(event, context):

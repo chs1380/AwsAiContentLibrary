@@ -38,7 +38,7 @@ def moderate_image(bucket, key):
             'source': source,
             'moderateContent': moderateContent,
             'problem': 'Image',
-            'details': response['ModerationLabels']
+            'details': json.dumps(response['ModerationLabels'])
         }
         response = sns.publish(
             TargetArn=os.environ['moderationTopic'],

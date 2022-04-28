@@ -24,6 +24,14 @@ export class AwsAiContentLibraryStack extends Stack {
       value: contentLibraryConstruct.moderationFailedBucket.bucketName,
       description: "Moderation Failed Bucket",
     });
+    new cdk.CfnOutput(this, "moderationResultTable", {
+      value: contentLibraryConstruct.moderationResultTable.tableName,
+      description: "Moderation Result Table",
+    });
+    new cdk.CfnOutput(this, "moderationFailedTopic", {
+      value: contentLibraryConstruct.moderationFailedTopic.topicArn,
+      description: "Moderation Failed Topic",
+    });
   }
 }
 

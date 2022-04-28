@@ -46,7 +46,6 @@ export class HuggingFaceSagemakerServerlessInferenceConstruct extends Construct 
           __dirname,
           "..",
           "..",
-          "assets",
           "lambda",
           "HuggingFaceModelCustomResources"
         ), // required

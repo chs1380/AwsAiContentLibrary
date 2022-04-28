@@ -16,7 +16,7 @@ def moderate_video(key, jobId):
         'source': source,
         'moderateContent': moderateContent,
         'problem': 'Video',
-        'details': {'JobId': jobId}
+        'details': json.dumps({'JobId': jobId})
     }
     response = sns.publish(
         TargetArn=os.environ['moderationTopic'],
@@ -52,7 +52,7 @@ def lambda_handler(event, context):
 
     data = json.loads(message)
     jobId = data['JobId']
-    key = data['S3ObjectName']
+    key = data['Video']['S3ObjectName']
     if hasAnyUnsafeContent(jobId):
         moderate_video(key, jobId)
 
