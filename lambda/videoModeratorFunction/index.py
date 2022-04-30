@@ -31,8 +31,8 @@ def lambda_handler(event, context):
         )
         print(response)
 
-        filename, file_extension = os.path.splitext(key)
-        safe_filename = filename.replace('@', "(_!AT!_)")
+        output_key = get_moderate_content_key(key, "json")
+        safe_filename = output_key.replace('@', "(_!AT!_)")
         safe_filename = safe_filename.replace(' ', "(_!SPACE!_)")
         job_args = {
             'TranscriptionJobName': context.aws_request_id,

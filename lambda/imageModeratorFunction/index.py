@@ -20,8 +20,7 @@ def extract_text(bucket, key, file_path):
         elif text['Type'] == 'WORD':
             words.append(text['DetectedText'])
     texts = lines + words
-    filePathName, file_extension = os.path.splitext(key)
-    output_key = filePathName + ".txt"
+    output_key = get_moderate_content_key(key, "txt")
     print("\n".join(texts))
     print(output_key)
     text = "\n".join(texts)

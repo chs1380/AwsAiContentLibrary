@@ -1,11 +1,8 @@
 import { Construct } from "constructs";
 import { Bucket, EventType } from "aws-cdk-lib/aws-s3";
-import { Runtime, Tracing } from "aws-cdk-lib/aws-lambda";
-import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
-import * as path from "path";
 import { Duration, RemovalPolicy } from "aws-cdk-lib";
 import { Topic } from "aws-cdk-lib/aws-sns";
-import { SnsDestination } from "aws-cdk-lib/aws-s3-notifications";
+import { LambdaDestination } from "aws-cdk-lib/aws-s3-notifications";
 import {
   EmailSubscription,
   LambdaSubscription,
@@ -65,10 +62,6 @@ export class ContentLibraryConstruct extends Construct {
       ],
     });
 
-    this.moderationFailedBucket.addEventNotification(
-      EventType.OBJECT_CREATED_COPY,
-      new SnsDestination(this.moderationFailedTopic)
-    );
     this.moderationTopic = new Topic(this, "moderationTopic");
 
     if (props.adminEmail) {
@@ -94,13 +87,20 @@ export class ContentLibraryConstruct extends Construct {
       ["pptx", "pptm"]
     );
 
+    this.lambdaBuilderConstruct.getProcessingFunction(
+      "copyObjectFunction",
+      ["jpeg", "jpg", "png", "text", "mp4"],
+      this.contentLibraryBucket,
+      this.processingBucket
+    );
+
     new ImageModeratorConstruct(this, "imageModerationConstruct", {
       lambdaBuilderConstruct: this.lambdaBuilderConstruct,
     });
-    new TextModeratorConstruct(this, "TextModeratorConstruct", {
+    new TextModeratorConstruct(this, "textModeratorConstruct", {
       lambdaBuilderConstruct: this.lambdaBuilderConstruct,
     });
-    new VideoModeratorConstruct(this, "VideoModeratorConstruct", {
+    new VideoModeratorConstruct(this, "videoModeratorConstruct", {
       lambdaBuilderConstruct: this.lambdaBuilderConstruct,
     });
 
@@ -110,31 +110,20 @@ export class ContentLibraryConstruct extends Construct {
       billingMode: BillingMode.PAY_PER_REQUEST,
     });
 
-    const moderationFailedFunction = new PythonFunction(
-      this,
-      "moderationFailedFunction",
-      {
-        entry: path.join(
-          __dirname,
-          "..",
-          "..",
-          "lambda",
-          "moderationFailedFunction"
-        ), // required
-        description: this.prefix + "moderationFailedFunction",
-        runtime: Runtime.PYTHON_3_9, // required
-        index: "index.py", // optional, defaults to 'index.py'
-        handler: "lambda_handler", // optional, defaults to 'handler'
-        layers: [this.lambdaBuilderConstruct.commonLayer],
-        environment: {
-          contentLibraryBucket: this.contentLibraryBucket.bucketName,
-          moderationFailedBucket: this.moderationFailedBucket.bucketName,
-          moderationResultTableName: this.moderationResultTable.tableName,
-        },
-        timeout: Duration.minutes(5),
-        memorySize: 512,
-        tracing: Tracing.ACTIVE,
-      }
+    const moderationFailedFunction = this.lambdaBuilderConstruct.getFunction(
+      "moderationFailedFunction"
+    );
+    moderationFailedFunction.addEnvironment(
+      "contentLibraryBucket",
+      this.contentLibraryBucket.bucketName
+    );
+    moderationFailedFunction.addEnvironment(
+      "moderationFailedBucket",
+      this.moderationFailedBucket.bucketName
+    );
+    moderationFailedFunction.addEnvironment(
+      "moderationResultTableName",
+      this.moderationResultTable.tableName
     );
     this.moderationTopic.addSubscription(
       new LambdaSubscription(moderationFailedFunction)
@@ -142,5 +131,19 @@ export class ContentLibraryConstruct extends Construct {
     this.moderationFailedBucket.grantWrite(moderationFailedFunction);
     this.contentLibraryBucket.grantReadWrite(moderationFailedFunction);
     this.moderationResultTable.grantFullAccess(moderationFailedFunction);
+
+    const notifyModerationResultFunction =
+      this.lambdaBuilderConstruct.getFunction("notifyModerationResultFunction");
+    notifyModerationResultFunction.addEnvironment(
+      "moderationFailedTopicArn",
+      this.moderationFailedTopic.topicArn
+    );
+    this.moderationFailedBucket.grantPutAcl(notifyModerationResultFunction);
+    this.moderationFailedBucket.grantRead(notifyModerationResultFunction);
+    this.moderationFailedTopic.grantPublish(notifyModerationResultFunction);
+    this.moderationFailedBucket.addEventNotification(
+      EventType.OBJECT_CREATED_COPY,
+      new LambdaDestination(notifyModerationResultFunction)
+    );
   }
 }
