@@ -26,3 +26,7 @@ You need to run TypeScript compiler at the background with new terminal.
 ```
 pj watch
 ```
+
+## Deployment
+1. rename .env.template to .env, and input admin email who needs to be alerted when moderation fails.
+2. run  ```pj deploy``` and approve for the creation of resources.

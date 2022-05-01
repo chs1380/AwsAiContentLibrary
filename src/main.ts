@@ -2,16 +2,20 @@ import { App, Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { ContentLibraryConstruct } from "./lib/ContentLibraryConstruct";
 import * as cdk from "aws-cdk-lib";
+import * as dotenv from "dotenv";
 
 export class AwsAiContentLibraryStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
+
+    dotenv.config({ path: __dirname + "/../.env" });
+    console.log("adminEmail: " + process.env.adminEmail);
     const contentLibraryConstruct = new ContentLibraryConstruct(
       this,
       "contentLibraryConstruct",
       {
         prefix: "dev",
-        adminEmail: "cywong@vtc.edu.hk",
+        adminEmail: process.env.adminEmail,
       }
     );
 

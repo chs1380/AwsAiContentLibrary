@@ -125,7 +125,7 @@
       "name": "hotswap",
       "steps": [
         {
-          "exec": "npx projen deploy --hotswap --require-approval never"
+          "exec": "npx projen deploy --hotswap --require-approval never --outputs-file ./output.json"
         }
       ]
     },

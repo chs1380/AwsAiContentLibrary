@@ -31,6 +31,7 @@ def lambda_handler(event, context):
         )
         print(response)
 
+        filePathName, file_extension = os.path.splitext(key)
         output_key = get_moderate_content_key(key, "json")
         safe_filename = output_key.replace('@', "(_!AT!_)")
         safe_filename = safe_filename.replace(' ', "(_!SPACE!_)")
