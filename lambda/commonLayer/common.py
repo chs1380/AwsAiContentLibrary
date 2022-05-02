@@ -70,6 +70,9 @@ def get_source_file_and_moderate_content(filePathName):
     elif '/docx/' in safe_filename:
         s = safe_filename.split('/docx/')
         return (s[0] + ".docx", s[1])
+    elif '/pdf/' in safe_filename:
+        s = safe_filename.split('/pdf/')
+        return (s[0] + ".pdf", s[1])
     elif '/subType/' in safe_filename:
         s = safe_filename.split('/subType/')
         return (s[0], s[1])
@@ -79,7 +82,7 @@ def get_source_file_and_moderate_content(filePathName):
 
 def get_moderate_content_key(key, ext):
     filePathName, file_extension = os.path.splitext(key)
-    if '/pptx/' in filePathName or '/docx/' in filePathName:
+    if '/pptx/' in filePathName or '/docx/' in filePathName or '/pdf/' in filePathName:
         return filePathName + "." + ext
     else:
         return key + "/subType/" + filePathName + "." + ext

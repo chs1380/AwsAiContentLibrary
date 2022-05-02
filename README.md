@@ -1,5 +1,5 @@
 # AWS AI Documents Moderator
-This project uses AWS AI services to moderate images, videos and text in PowerPoint and Word documents.
+This project uses AWS AI services to moderate images, videos and text in PowerPoint, Word and PDF documents.
 
 ### AWS Cloud9 Setup Environment
 ```

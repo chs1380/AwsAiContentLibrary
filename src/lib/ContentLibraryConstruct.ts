@@ -86,6 +86,9 @@ export class ContentLibraryConstruct extends Construct {
       "msPowerPointExtractorFunction",
       ["pptx", "pptm"]
     );
+    this.lambdaBuilderConstruct.extractorFunction("pdfExtractorFunction", [
+      "pdf",
+    ]);
 
     this.lambdaBuilderConstruct.getProcessingFunction(
       "copyObjectFunction",
