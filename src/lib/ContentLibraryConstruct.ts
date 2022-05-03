@@ -120,41 +120,45 @@ export class ContentLibraryConstruct extends Construct {
       sortKey: { name: "subKey", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
     });
+    this.buildModerationFailedResources();
+  }
+
+  private buildModerationFailedResources() {
 
     const moderationFailedFunction = this.lambdaBuilderConstruct.getFunction(
-      "moderationFailedFunction"
+        "moderationFailedFunction"
     );
     moderationFailedFunction.addEnvironment(
-      "contentLibraryBucket",
-      this.contentLibraryBucket.bucketName
+        "contentLibraryBucket",
+        this.contentLibraryBucket.bucketName
     );
     moderationFailedFunction.addEnvironment(
-      "moderationFailedBucket",
-      this.moderationFailedBucket.bucketName
+        "moderationFailedBucket",
+        this.moderationFailedBucket.bucketName
     );
     moderationFailedFunction.addEnvironment(
-      "moderationResultTableName",
-      this.moderationResultTable.tableName
+        "moderationResultTableName",
+        this.moderationResultTable.tableName
     );
     this.moderationTopic.addSubscription(
-      new LambdaSubscription(moderationFailedFunction)
+        new LambdaSubscription(moderationFailedFunction)
     );
     this.moderationFailedBucket.grantWrite(moderationFailedFunction);
     this.contentLibraryBucket.grantReadWrite(moderationFailedFunction);
     this.moderationResultTable.grantFullAccess(moderationFailedFunction);
 
     const notifyModerationResultFunction =
-      this.lambdaBuilderConstruct.getFunction("notifyModerationResultFunction");
+        this.lambdaBuilderConstruct.getFunction("notifyModerationResultFunction");
     notifyModerationResultFunction.addEnvironment(
-      "moderationFailedTopicArn",
-      this.moderationFailedTopic.topicArn
+        "moderationFailedTopicArn",
+        this.moderationFailedTopic.topicArn
     );
     this.moderationFailedBucket.grantPutAcl(notifyModerationResultFunction);
     this.moderationFailedBucket.grantRead(notifyModerationResultFunction);
     this.moderationFailedTopic.grantPublish(notifyModerationResultFunction);
     this.moderationFailedBucket.addEventNotification(
-      EventType.OBJECT_CREATED_COPY,
-      new LambdaDestination(notifyModerationResultFunction)
+        EventType.OBJECT_CREATED_COPY,
+        new LambdaDestination(notifyModerationResultFunction)
     );
   }
 }
