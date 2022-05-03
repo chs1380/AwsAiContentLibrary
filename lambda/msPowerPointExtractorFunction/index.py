@@ -37,6 +37,7 @@ def lambda_handler(event, context):
         file_path = save_file(bucket, key)
         extract_media(file_path, 'ppt/media/')
         extract_text(file_path)
+        os.remove(file_path)
         copy_tmp_to_processing_bucket()
         return 'OK'
     except Exception as e:

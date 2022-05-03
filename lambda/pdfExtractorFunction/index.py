@@ -103,16 +103,17 @@ def lambda_handler(event, context):
     key = urllib.parse.unquote_plus(
         event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     try:
-        pdf_file_path = save_file(bucket, key)
+        file_path = save_file(bucket, key)
 
-        filename, file_extension = os.path.splitext(pdf_file_path)
+        filename, file_extension = os.path.splitext(file_path)
         output_dir = os.path.join(os.path.dirname(
-            pdf_file_path), filename + "/pdf/")
+            file_path), filename + "/pdf/")
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-        extract_text(pdf_file_path)
-        extract_pdf_media(pdf_file_path)
+        extract_text(file_path)
+        extract_pdf_media(file_path)
 
+        os.remove(file_path)
         copy_tmp_to_processing_bucket()
         return 'OK'
     except Exception as e:

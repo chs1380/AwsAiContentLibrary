@@ -23,9 +23,10 @@ def lambda_handler(event, context):
     key = urllib.parse.unquote_plus(
         event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     try:
-        word_file_path = save_file(bucket, key)
-        extract_media(word_file_path, 'word/media/')
-        extract_text(word_file_path)
+        file_path = save_file(bucket, key)
+        extract_media(file_path, 'word/media/')
+        extract_text(file_path)
+        os.remove(file_path)
         copy_tmp_to_processing_bucket()
         return 'OK'
     except Exception as e:

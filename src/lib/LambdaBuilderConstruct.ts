@@ -45,7 +45,7 @@ export class LambdaBuilderConstruct extends Construct {
     return this.getProcessingFunction(
       functionName,
       extensions,
-      this.contentLibraryBucket,
+      this.processingBucket,
       this.processingBucket
     );
   }

@@ -12,6 +12,7 @@ import { ImageModeratorConstruct } from "./ImageModeratorConstruct";
 import { TextModeratorConstruct } from "./TextModeratorConstruct";
 import { VideoModeratorConstruct } from "./VideoModeratorConstruct";
 import { Table, AttributeType, BillingMode } from "aws-cdk-lib/aws-dynamodb";
+import { S3EventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export interface ContentLibraryConstructProps {
   prefix: string;
@@ -90,11 +91,18 @@ export class ContentLibraryConstruct extends Construct {
       "pdf",
     ]);
 
-    this.lambdaBuilderConstruct.getProcessingFunction(
-      "copyObjectFunction",
-      ["jpeg", "jpg", "png", "text", "mp4"],
-      this.contentLibraryBucket,
-      this.processingBucket
+    const copyObjectFunction =
+      this.lambdaBuilderConstruct.getProcessingFunction(
+        "copyObjectFunction",
+        [],
+        this.contentLibraryBucket,
+        this.processingBucket
+      );
+
+    copyObjectFunction.addEventSource(
+      new S3EventSource(this.contentLibraryBucket, {
+        events: [EventType.OBJECT_CREATED],
+      })
     );
 
     new ImageModeratorConstruct(this, "imageModerationConstruct", {
