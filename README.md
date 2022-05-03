@@ -1,5 +1,9 @@
 # AWS AI Documents Moderator
-This project uses AWS AI services to moderate images, videos and text in PowerPoint, Word and PDF documents.
+This project uses AWS AI services to moderate images, videos, text, PowerPoint, Word and PDF files.
+It is a AWS CDK project and 100% serverless.
+
+## Architecture
+![Architecture](./images/Architecture.png)
 
 ### AWS Cloud9 Setup Environment
 ```
