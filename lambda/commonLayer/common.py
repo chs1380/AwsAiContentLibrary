@@ -86,3 +86,11 @@ def get_moderate_content_key(key, ext):
         return filePathName + "." + ext
     else:
         return key + "/subType/" + filePathName + "." + ext
+
+
+def get_video_convert_key(key):
+    filePathName, file_extension = os.path.splitext(key)
+    if '/pptx/' in filePathName or '/docx/' in filePathName or '/pdf/' in filePathName:
+        return filePathName
+    else:
+        return key + "/subType/" + filePathName

@@ -1,6 +1,6 @@
 const { awscdk } = require('projen');
 const project = new awscdk.AwsCdkTypeScriptApp({
-  cdkVersion: '2.22.0',
+  cdkVersion: '2.27.0',
   defaultReleaseBranch: 'main',
   name: 'aws-ai-document-moderator',
 
