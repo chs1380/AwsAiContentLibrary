@@ -1,6 +1,10 @@
-# AWS AI Documents Moderator
+# AWS AI Content Library
 This project uses AWS AI services to moderate images, videos, text, PowerPoint, Word and PDF files.
 It is a AWS CDK project and 100% serverless.
+
+For details, please check out this blog post.
+
+https://www.linkedin.com/pulse/how-build-robust-content-library-aws-aiml-services-wong/
 
 ## Architecture
 ![Architecture](./images/Architecture.png)
